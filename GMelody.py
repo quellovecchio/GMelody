@@ -141,3 +141,5 @@ class GMelody():
             # If at save interval => save generated image samples
             if epoch % sample_interval == 0:
                 self.sample_phrases(epoch)
+
+            # need to start working on the music generation
