@@ -36,8 +36,8 @@ class GMelody():
 
     def __init__(self):
 
-        self.midi_notes = 88
-        self.midi_ticks = 17
+        self.midi_notes = 78
+        self.midi_ticks = 2
         self.midi_shape = (self.midi_notes, self.midi_ticks)
         self.latent_dim = 100
 
@@ -115,7 +115,7 @@ class GMelody():
         # This is code for testing actually
         mc = MidiCoordinator(24,102)
         matrix = mc.midiToMatrix("2.mid")
-        data = tf.data.Dataset.from_tensor_slices(matrix)
+        data = np.array(matrix)
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -128,9 +128,8 @@ class GMelody():
             # ---------------------
 
             # Select a random batch of midis
-            #idx = np.random.randint(0, data.shape[0], batch_size)
-            # 0 in the next line has to be substituted with idx, this is for testing purposes only
-            phrases = np.array([data])
+            idx = np.random.randint(0, data.shape[0], batch_size)
+            phrases = data[idx]
 
             noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
 
@@ -138,7 +137,7 @@ class GMelody():
             gen_phrases = self.generator.predict(noise)
 
             # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(phrases, valid, sample_weight=None, class_weight=None, reset_metrics=True)
+            d_loss_real = self.discriminator.train_on_batch(phrases, valid)
             d_loss_fake = self.discriminator.train_on_batch(gen_phrases, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
