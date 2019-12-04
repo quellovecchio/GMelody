@@ -112,7 +112,7 @@ class MidiCoordinator(object):
         
         lastcmdtime = 0
         prevstate = [[0,0] for x in range(self._span)]
-        for time, state in enumerate(matrix + [prevstate[:]]):  
+        for time, state in enumerate(matrix + [prevstate[:]]):
             offNotes = []
             onNotes = []
             for i in range(self._span):
@@ -138,4 +138,4 @@ class MidiCoordinator(object):
         eot = midi.EndOfTrackEvent(tick=1)
         track.append(eot)
                                                                 
-        midi.write_midifile("{}.mid".format(name), pattern)
+        midi.write_midifile("generated/{}.mid".format(name), pattern)

@@ -23,22 +23,21 @@ from keras.models import Sequential, Model
 from keras.optimizers import Adam
 
 import matplotlib.pyplot as plt
-
 import tensorflow as tf
 
 from MidiCoordinator import MidiCoordinator
-
+from Logger import Logger
+import numpy as np
 import sys
 
-import numpy as np
 
 class GMelody():
 
     def __init__(self):
 
         self.midi_notes = 78
-        self.midi_ticks = 2
-        self.midi_shape = (self.midi_notes, self.midi_ticks)
+        self.midi_ticks = 17
+        self.midi_shape = (self.midi_ticks, self.midi_notes)
         self.latent_dim = 100
 
         optimizer = Adam(0.0002, 0.5)
@@ -52,7 +51,7 @@ class GMelody():
         # Build the generator
         self.generator = self.build_generator()
 
-        # The generator takes noise as input and generates imgs
+        # The generator takes noise as input and generates midis
         z = Input(shape=(self.latent_dim,))
         result = self.generator(z)
 
@@ -81,7 +80,7 @@ class GMelody():
         model.add(Dense(1024))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation='tanh'))
+        model.add(Dense(np.prod(self.midi_shape), activation='sigmoid'))
         model.add(Reshape(self.midi_shape))
         model.summary()
 
@@ -111,11 +110,24 @@ class GMelody():
 
     def train(self, epochs, batch_size, sample_interval=50):
 
+        l = Logger()
+        l.start_log()
         # Load the dataset
-        # This is code for testing actually
         mc = MidiCoordinator(24,102)
-        matrix = mc.midiToMatrix("2.mid")
-        data = np.array(matrix)
+        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes))
+
+        print("-------------------Loading dataset--------------------")
+
+        for i in range(1, batch_size+1):
+            try:
+                matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
+                matrix = np.arange(self.midi_notes * self.midi_ticks).reshape(self.midi_notes, self.midi_ticks,)
+                print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
+                data[i-1] = matrix
+            except:
+                print("Skipped midi n. %d" % (i))
+
+        print("-------------------Dataset loaded--------------------")
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -131,9 +143,9 @@ class GMelody():
             idx = np.random.randint(0, data.shape[0], batch_size)
             phrases = data[idx]
 
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
 
-            # Generate a batch of new images
+            # Generate a batch of new midis
             gen_phrases = self.generator.predict(noise)
 
             # Train the discriminator
@@ -145,7 +157,7 @@ class GMelody():
             #  Train Generator
             # ---------------------
 
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
 
             # Train the generator (to have the discriminator label samples as valid)
             g_loss = self.combined.train_on_batch(noise, valid)
@@ -153,31 +165,20 @@ class GMelody():
             # Plot the progress
             print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
 
-            # If at save interval => save generated image samples
+            # If at save interval => save generated samples
             if epoch % sample_interval == 0:
-                self.sample_midi(epoch)
+                self.sample_midi(epoch, mc, l, batch_size)
 
             # need to start working on the music generation
     
-    def sample_midi(self, epoch):
-
+    def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
-        noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+        noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-
-        # Rescale images 0 - 1
-        gen_midi = 0.5 * gen_midi + 0.5
-
-        fig, axs = plt.subplots(r, c)
-        cnt = 0
-        for i in range(r):
-            for j in range(c):
-                axs[i,j].imshow(gen_midi[cnt, :,:,0], cmap='gray')
-                axs[i,j].axis('off')
-                cnt += 1
-        fig.savefig("generated/%d.mid" % epoch)
-        plt.close()
+        gen_midi2 = np.transpose(gen_midi, [0,2,1])
+        l.export_matrix(gen_midi2[:1,:,:2], epoch)
+        midicoordinator.matrixToMidi(gen_midi2[:1,:,:2], epoch)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=30000, batch_size=1, sample_interval=200)
+    g.train(epochs=50000, batch_size=119, sample_interval=200)
