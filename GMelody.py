@@ -29,6 +29,7 @@ from MidiCoordinator import MidiCoordinator
 from Logger import Logger
 import numpy as np
 import sys
+import midi
 
 
 class GMelody():
@@ -37,7 +38,7 @@ class GMelody():
 
         self.midi_notes = 78
         self.midi_ticks = 17
-        self.midi_shape = (self.midi_ticks, self.midi_notes)
+        self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
         optimizer = Adam(0.0002, 0.5)
@@ -111,22 +112,22 @@ class GMelody():
     def train(self, epochs, batch_size, sample_interval=50):
 
         l = Logger()
+        l.clean_log()
         l.start_log()
         # Load the dataset
+        # Check the interval
         mc = MidiCoordinator(24,102)
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes))
+        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
 
         print("-------------------Loading dataset--------------------")
-
-        for i in range(1, batch_size+1):
+        for i in range(0, batch_size):
             try:
                 matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
-                matrix = np.arange(self.midi_notes * self.midi_ticks).reshape(self.midi_notes, self.midi_ticks,)
+                l.log_matrix_in_input(matrix, i)
+                data[i] = matrix
                 print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
-                data[i-1] = matrix
             except:
-                print("Skipped midi n. %d" % (i))
-
+                print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
         print("-------------------Dataset loaded--------------------")
 
         # Adversarial ground truths
@@ -140,6 +141,7 @@ class GMelody():
             # ---------------------
 
             # Select a random batch of midis
+            # VERY IMPORTANT! THIS DOES NOT WORK. It takes every midi each time. To do.
             idx = np.random.randint(0, data.shape[0], batch_size)
             phrases = data[idx]
 
@@ -175,10 +177,13 @@ class GMelody():
         r, c = 5, 5
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        gen_midi2 = np.transpose(gen_midi, [0,2,1])
-        l.export_matrix(gen_midi2[:1,:,:2], epoch)
-        midicoordinator.matrixToMidi(gen_midi2[:1,:,:2], epoch)
+        #gen_midi = np.transpose(gen_midi, [0,2,1])
+        gen_midi = gen_midi.round(1)
+        l.log_matrix_at_epoch(gen_midi[:,:,:2], epoch)
+        midicoordinator.matrixToMidi(gen_midi, epoch)
+        pattern = midi.read_midifile("./generated/%d.mid" % (epoch))
+        l.log_midi_pattern(pattern)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=50000, batch_size=119, sample_interval=200)
+    g.train(epochs=100000, batch_size=119, sample_interval=100)

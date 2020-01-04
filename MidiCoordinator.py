@@ -38,6 +38,9 @@
 import midi
 import numpy
 
+from Logger import Logger
+
+
 class MidiCoordinator(object):
 
     def __init__(self, lowerBound, upperBound):
@@ -46,6 +49,7 @@ class MidiCoordinator(object):
         self._span = upperBound-lowerBound
         
     def midiToMatrix(self, midifile, squash=True):
+        c = 0
         schema = midi.read_midifile(midifile)
         totalTime = [track[0].tick for track in schema]
         posns = [0 for track in schema]
@@ -62,6 +66,7 @@ class MidiCoordinator(object):
                 state = [[oldstate[x][0],0] for x in range(self._span)]
                 matrix.append(state)
             for i in range(len(totalTime)): #For each track
+                c = c + 1
                 if end:
                     break
                 while totalTime[i] == 0:
@@ -98,10 +103,10 @@ class MidiCoordinator(object):
         S = numpy.array(matrix)
         statematrix = numpy.hstack((S[:, :, 0], S[:, :, 1]))
         statematrix = numpy.asarray(statematrix).tolist()
+        print(c)
         return matrix
 
     def matrixToMidi(self, matrix, name="example"):
-        matrix = numpy.array(matrix)
         if not len(matrix.shape) == 3:
             matrix = numpy.dstack((matrix[:, :self._span], matrix[:, self._span:]))
         matrix = numpy.asarray(matrix)
