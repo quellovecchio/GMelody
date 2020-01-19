@@ -109,7 +109,8 @@ class GMelody():
         return Model(result, validity)
 
 
-    def train(self, epochs, batch_size, sample_interval=50):
+    # the specified batch size is for using a non definitive batch size letting the script discard midis
+    def train(self, epochs, nominal_batch_size, sample_interval=50):
 
         l = Logger()
         l.clean_log()
@@ -117,18 +118,31 @@ class GMelody():
         # Load the dataset
         # Check the interval
         mc = MidiCoordinator(24,102)
+        # this code is to be replaced: it helps me managing a non definitive dataset
+        batch_size = 0
+        print("Counting the eligible midis between candidates")
+        for i in range(0, nominal_batch_size):
+            try:
+                matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
+                batch_size = batch_size + 1
+                print("Midi n. %d, with shape %s, number %d, passed" % (i,matrix.shape, batch_size))
+            except:
+                print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
+        print("Counting done")
+        
         data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
 
-        print("-------------------Loading dataset--------------------")
+
+        print("Loading dataset...")
         for i in range(0, batch_size):
             try:
                 matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
-                l.log_matrix_in_input(matrix, i)
+                #l.log_matrix_in_input(matrix, i)
                 data[i] = matrix
                 print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
             except:
                 print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
-        print("-------------------Dataset loaded--------------------")
+        print("Dataset loaded")
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -186,4 +200,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, batch_size=119, sample_interval=100)
+    g.train(epochs=100000, nominal_batch_size=119, sample_interval=100)

@@ -1,0 +1,1 @@
+I'm sorry for naming conventions, but this was my first project written in python and for that reason there is some confusion

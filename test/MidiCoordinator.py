@@ -77,9 +77,9 @@ class MidiCoordinator(object):
         schema = midi.read_midifile(midifile)
         # evaluating the number of tracks
         tracksNumber = len(schema)
-        # if the midi has more than one track stops the execution 
+        # if the midi has more than one track warn that the other will be discarded
         if tracksNumber > 1:
-            raise ValueError('The midi file has more than one track')
+            print("The midi file has more than one track. The others will be discarded.")
 
         # this cylces for each track
         for i in range(tracksNumber):
