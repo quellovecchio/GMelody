@@ -77,12 +77,14 @@ class MidiCoordinator(object):
         schema = midi.read_midifile(midifile)
         # evaluating the number of tracks
         tracksNumber = len(schema)
-        # if the midi has more than one track stops the execution 
+        # if the midi has more than one track warns that the other will be discarded
         if tracksNumber > 1:
-            raise ValueError('The midi file has more than one track')
+            print("The midi track has more than one track. The others will be discarded.")
 
         # this cylces for each track
         for i in range(tracksNumber):
+            # flag to discard the track if empty
+            hasEvents = False
             # gather the number of events
             eventsNumber = len(schema[i])
             # calculates the length of the track in ticks
@@ -105,12 +107,17 @@ class MidiCoordinator(object):
                         if isinstance(event, midi.NoteOffEvent) or event.velocity == 0:
                             trackMatrix[tickCounter-1][event.pitch-self._lowerBound] = [1,0]
                         else:
+                            hasEvents = True
                             trackMatrix[tickCounter-1][event.pitch-self._lowerBound] = [1,event.velocity]
                 else:
                     pass
-            return trackMatrix
+            if hasEvents == True:
+                return trackMatrix
+            else:
+                raise ValueError('The track has no events')
 
     def matrixToMidi(self, matrix, name = "example"):
+        print(matrix[0])
         pattern = midi.Pattern()
         track = midi.Track()
         pattern.append(track)
@@ -133,6 +140,7 @@ class MidiCoordinator(object):
                     #print("Couple found: ")
                     #print(matrix[i][j])
                     #print("Response: [1, 1]")
+                    #print(matrix[i][j][1])
                     velocity = int(matrix[i][j][1])
                     event = midi.NoteOnEvent(tick = tickCounter, velocity = velocity, pitch = j + self._lowerBound)
                     track.append(event)
