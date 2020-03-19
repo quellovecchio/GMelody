@@ -148,7 +148,6 @@ class MidiCoordinator(object):
             tickCounter = tickCounter+1
         endOfTrack = midi.EndOfTrackEvent(tick=1)
         track.append(endOfTrack)
-        #print(pattern)
-        midi.write_midifile("generated/abc{}.mid".format(name), pattern)
+        midi.write_midifile("generated/{}.mid".format(name), pattern)
 
 

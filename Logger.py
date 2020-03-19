@@ -20,9 +20,9 @@ class Logger():
         out_file.write("\n\n")
         out_file.close()
 
-    def log_midi_pattern(self, pattern):
+    def log_midi_pattern(self, pattern, epoch):
         out_file = open("log.txt","a")
-        out_file.write("Associated pattern: %d \n\n")
+        out_file.write("Associated pattern: %d \n\n" % epoch)
         out_file.write(str(pattern))
         out_file.write("\n\n")
         out_file.close()

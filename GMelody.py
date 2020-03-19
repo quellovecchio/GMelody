@@ -209,7 +209,7 @@ class GMelody():
         #l.log_matrix_at_epoch(gen_midi, epoch)
         midicoordinator.matrixToMidi(gen_midi[0], epoch)
         pattern = midi.read_midifile("./generated/%d.mid" % (epoch))
-        l.log_midi_pattern(pattern)
+        l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
