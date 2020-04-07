@@ -20,7 +20,7 @@ from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
-from keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -124,13 +124,14 @@ class GMelody():
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
         # You should not use this solution in your project
         coolnessArray = np.zeros(nominal_batch_size)
+        data = np.zeros((nominal_batch_size, self.midi_ticks, self.midi_notes, 2))
 
         print("Preparing dataset...")
         for i in range(0, nominal_batch_size):
             try:
-                matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
+                matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
                 #l.log_matrix_in_input(matrix, i)
-                #data[i] = matrix
+                data[i+1] = matrix
                 #print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
                 batch_size = batch_size + 1
                 coolnessArray[i] = 1
@@ -146,7 +147,7 @@ class GMelody():
         for i in range(0, nominal_batch_size):
             try:
                 if coolnessArray[i] == 1:
-                    matrix = np.asarray(mc.midiToMatrix("./dataset/%d.mid" % (i)))
+                    matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
                     #l.log_matrix_in_input(matrix, i)
                     data[c] = matrix
                     print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
@@ -208,9 +209,9 @@ class GMelody():
         #gen_midi = gen_midi.round(1)
         #l.log_matrix_at_epoch(gen_midi, epoch)
         midicoordinator.matrixToMidi(gen_midi[0], epoch)
-        pattern = midi.read_midifile("./generated/%d.mid" % (epoch))
+        pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
         l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=100)
+    g.train(epochs=100000, nominal_batch_size=119, sample_interval=500)

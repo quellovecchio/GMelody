@@ -148,6 +148,6 @@ class MidiCoordinator(object):
             tickCounter = tickCounter+1
         endOfTrack = midi.EndOfTrackEvent(tick=1)
         track.append(endOfTrack)
-        midi.write_midifile("generated/{}.mid".format(name), pattern)
+        midi.write_midifile("/content/GMelody/generated/{}.mid".format(name), pattern)
 
 
