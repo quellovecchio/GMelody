@@ -82,7 +82,7 @@ class GMelody():
         model.add(Dense(1024))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation='sigmoid'))
+        model.add(Dense(np.prod(self.midi_shape), activation='relu'))
         model.add(Reshape(self.midi_shape))
         model.summary()
 
@@ -208,7 +208,7 @@ class GMelody():
         gen_midi = self.generator.predict(noise)
         #gen_midi = gen_midi.round(1)
         #l.log_matrix_at_epoch(gen_midi, epoch)
-        midicoordinator.matrixToMidi(gen_midi[0], epoch)
+        midicoordinator.matrixToMidi(gen_midi[1], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
         l.log_midi_pattern(pattern, epoch)
 
