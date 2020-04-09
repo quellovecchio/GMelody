@@ -105,10 +105,10 @@ class MidiCoordinator(object):
                         pass
                     else:
                         if isinstance(event, midi.NoteOffEvent) or event.velocity == 0:
-                            trackMatrix[tickCounter-1][event.pitch-self._lowerBound] = [1,0]
+                            trackMatrix[tickCounter][event.pitch-self._lowerBound] = [1,0]
                         else:
                             hasEvents = True
-                            trackMatrix[tickCounter-1][event.pitch-self._lowerBound] = [1,event.velocity]
+                            trackMatrix[tickCounter][event.pitch-self._lowerBound] = [1,event.velocity]
                 else:
                     pass
             if hasEvents == True:
