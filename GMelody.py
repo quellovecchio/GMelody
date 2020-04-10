@@ -17,10 +17,11 @@ from __future__ import print_function, division
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
-from keras.layers.advanced_activations import LeakyReLU
+from keras.layers.advanced_activations import LeakyReLU, ThresholdedReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adagrad
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -42,7 +43,8 @@ class GMelody():
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
-        optimizer = Adam(0.0002, 0.5)
+        #optimizer = Adam(0.0002, 0.5)
+        optimizer = Adagrad()
 
          # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
@@ -82,7 +84,7 @@ class GMelody():
         model.add(Dense(1024))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation='relu'))
+        model.add(Dense(np.prod(self.midi_shape), activation=tf.keras.layers.LeakyReLU(alpha=0.1)))
         model.add(Reshape(self.midi_shape))
         model.summary()
 
@@ -110,7 +112,6 @@ class GMelody():
         return Model(result, validity)
 
 
-    # the specified batch size is for using a non definitive batch size letting the script discard midis
     def train(self, epochs, nominal_batch_size, sample_interval=50):
 
         l = Logger()

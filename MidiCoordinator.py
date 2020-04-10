@@ -142,7 +142,7 @@ class MidiCoordinator(object):
                     #print("Response: [1, 1]")
                     #print(matrix[i][j][1])
                     velocity = int(matrix[i][j][1])
-                    event = midi.NoteOnEvent(tick = tickCounter, velocity = velocity, pitch = j + self._lowerBound)
+                    event = midi.NoteOnEvent(tick = tickCounter, velocity = 40, pitch = j + self._lowerBound)
                     track.append(event)
                     tickCounter = 0
             tickCounter = tickCounter+1
