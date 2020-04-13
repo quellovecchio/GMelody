@@ -117,7 +117,7 @@ class MidiCoordinator(object):
                 raise ValueError('The track has no events')
 
     def matrixToMidi(self, matrix, name = "example"):
-        print(matrix[0])
+        #print(matrix[0])
         pattern = midi.Pattern()
         track = midi.Track()
         pattern.append(track)
