@@ -60,7 +60,7 @@ class GMelody():
         result = self.generator(z)
 
         # For the combined model we will only train the generator
-        self.discriminator.trainable = False
+        self.discriminator.trainable = True
 
         # The discriminator takes generated images as input and determines validity
         validity = self.discriminator(result)
