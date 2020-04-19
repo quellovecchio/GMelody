@@ -205,7 +205,7 @@ class GMelody():
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
-        noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+        noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
         i = 0
         for m in range(batch_size):
