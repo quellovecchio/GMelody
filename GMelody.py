@@ -17,7 +17,7 @@ from __future__ import print_function, division
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
-from keras.layers.advanced_activations import LeakyReLU, ThresholdedReLU
+from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
 from tensorflow.keras.optimizers import Adam
@@ -84,7 +84,7 @@ class GMelody():
         model.add(Dense(1024))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation=tf.keras.layers.LeakyReLU(alpha=0.1)))
+        model.add(Dense(np.prod(self.midi_shape), activation='relu'))
         model.add(Reshape(self.midi_shape))
         model.summary()
 
@@ -207,11 +207,13 @@ class GMelody():
         r, c = 5, 5
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        #gen_midi = gen_midi.round(1)
-        #l.log_matrix_at_epoch(gen_midi, epoch)
-        midicoordinator.matrixToMidi(gen_midi[1], epoch)
-        pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
-        l.log_midi_pattern(pattern, epoch)
+        i = 0
+        for m in range(batch_size):
+          name = "{}-{}".format(epoch, i)
+          midicoordinator.matrixToMidi(gen_midi[i], name)
+          #pattern = midi.read_midifile("/content/GMelody/generated/%d-%d.mid" % (epoch, i))
+          #l.log_midi_pattern(pattern, epoch)
+          i = i+1
 
 if __name__ == '__main__':
     g = GMelody()
