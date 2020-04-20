@@ -15,7 +15,7 @@
 
 from __future__ import print_function, division
 
-from keras.layers import Input, Dense, Reshape, Flatten, Dropout
+from keras.layers import Input, Dense, Reshape, Flatten, Dropout, Conv2DTranspose
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
@@ -38,13 +38,13 @@ class GMelody():
 
     def __init__(self):
 
-        self.midi_notes = 78
-        self.midi_ticks = 881
+        self.midi_notes = 80
+        self.midi_ticks = 880
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
-        #optimizer = Adam(0.0002, 0.5)
-        optimizer = Adagrad()
+        optimizer = Adam(0.0002, 0.5)
+        #optimizer = Adagrad()
 
          # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
@@ -74,42 +74,81 @@ class GMelody():
     def build_generator(self):
 
         model = Sequential()
+        model.add(Dense(10*110*100, use_bias=False, input_shape=(100,)))
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
 
-        model.add(Dense(256, input_dim=self.latent_dim))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(1024))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation='relu'))
-        model.add(Reshape(self.midi_shape))
-        model.summary()
+        model.add(Reshape((10, 110, 100)))
+        assert model.output_shape == (None, 10, 110, 100) # Note: None is the batch size
 
-        noise = Input(shape=(self.latent_dim,))
-        result = model(noise)
+        model.add(Conv2DTranspose(50, (5, 5), strides=(2, 2), padding='same', use_bias=False))
+        assert model.output_shape == (None, 20, 220, 50)
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
 
-        return Model(noise, result)
+        model.add(Conv2DTranspose(25, (5, 5), strides=(2, 2), padding='same', use_bias=False))
+        print(model.output_shape)
+        assert model.output_shape == (None, 40, 440, 25)
+        model.add(BatchNormalization())
+        model.add(LeakyReLU())
+
+        model.add(Conv2DTranspose(2, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
+        assert model.output_shape == (None, 80, 880, 2)
+
+        return model
+
+        #model = Sequential()
+
+        #model.add(Dense(256, input_dim=self.latent_dim))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Dense(512))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Dense(1024))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(BatchNormalization(momentum=0.8))
+        #model.add(Dense(np.prod(self.midi_shape), activation='relu'))
+        #model.add(Reshape(self.midi_shape))
+        #model.summary()
+
+        #noise = Input(shape=(self.latent_dim,))
+        #result = model(noise)
+
+        #return Model(noise, result)
 
 
     def build_discriminator(self):
 
-        model = Sequential()
+        model = tf.keras.Sequential()
+        model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
+                                     input_shape=[80, 880, 2]))
+        model.add(layers.LeakyReLU())
+        model.add(layers.Dropout(0.3))
 
-        model.add(Flatten(input_shape=self.midi_shape))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(256))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(Dense(1, activation='sigmoid'))
-        model.summary()
+        model.add(layers.Conv2D(50, (5, 5), strides=(2, 2), padding='same'))
+        model.add(layers.LeakyReLU())
+        model.add(layers.Dropout(0.3))
 
-        result = Input(shape=self.midi_shape)
-        validity = model(result)
+        model.add(layers.Flatten())
+        model.add(layers.Dense(1))
 
-        return Model(result, validity)
+        return model
+
+        #model = Sequential()
+
+        #model.add(Flatten(input_shape=self.midi_shape))
+        #model.add(Dense(512))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dense(256))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(Dense(1, activation='sigmoid'))
+        #model.summary()
+
+        #result = Input(shape=self.midi_shape)
+        #validity = model(result)
+
+        #return Model(result, validity)
 
 
     def train(self, epochs, nominal_batch_size, sample_interval=50):
@@ -119,7 +158,7 @@ class GMelody():
         l.start_log()
         # Load the dataset
         # Check the interval
-        mc = MidiCoordinator(24,102)
+        mc = MidiCoordinator(22,102)
         
         batch_size = 0
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
@@ -217,4 +256,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=500)
+    g.train(epochs=100000, nominal_batch_size=119, sample_interval=1000)
