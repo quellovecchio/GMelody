@@ -79,7 +79,7 @@ class GMelody():
         model.add(LeakyReLU())
 
         model.add(Reshape((10, 110, 100)))
-        assert model.output_shape == (None, 10, 110, 100) # Note: None is the batch size
+        #assert model.output_shape == (None, 10, 110, 100) # Note: None is the batch size
 
         model.add(Conv2DTranspose(50, (5, 5), strides=(2, 2), padding='same', use_bias=False))
         assert model.output_shape == (None, 20, 220, 50)
