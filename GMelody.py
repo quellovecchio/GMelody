@@ -74,26 +74,26 @@ class GMelody():
     def build_generator(self):
 
         model = Sequential()
-        model.add(Dense(10*110*100, use_bias=False, input_shape=(100,)))
+        model.add(Dense(110*10*100, use_bias=False, input_shape=(100,)))
         model.add(BatchNormalization())
         model.add(LeakyReLU())
 
-        model.add(Reshape((10, 110, 100)))
+        model.add(Reshape((110, 10, 100)))
         #assert model.output_shape == (None, 10, 110, 100) # Note: None is the batch size
 
         model.add(Conv2DTranspose(50, (5, 5), strides=(2, 2), padding='same', use_bias=False))
-        assert model.output_shape == (None, 20, 220, 50)
+        assert model.output_shape == (None, 220, 20, 50)
         model.add(BatchNormalization())
         model.add(LeakyReLU())
 
         model.add(Conv2DTranspose(25, (5, 5), strides=(2, 2), padding='same', use_bias=False))
         print(model.output_shape)
-        assert model.output_shape == (None, 40, 440, 25)
+        assert model.output_shape == (None, 440, 40, 25)
         model.add(BatchNormalization())
         model.add(LeakyReLU())
 
         model.add(Conv2DTranspose(2, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
-        assert model.output_shape == (None, 80, 880, 2)
+        assert model.output_shape == (None, 880, 80, 2)
 
         return model
 
@@ -120,18 +120,18 @@ class GMelody():
 
     def build_discriminator(self):
 
-        model = tf.keras.Sequential()
-        model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                                     input_shape=[80, 880, 2]))
-        model.add(layers.LeakyReLU())
-        model.add(layers.Dropout(0.3))
+        model = Sequential()
+        model.add(Conv2D(64, (5, 5), strides=(2, 2), padding='same',
+                                     input_shape=[880, 80, 2]))
+        model.add(LeakyReLU())
+        model.add(Dropout(0.3))
 
-        model.add(layers.Conv2D(50, (5, 5), strides=(2, 2), padding='same'))
-        model.add(layers.LeakyReLU())
-        model.add(layers.Dropout(0.3))
+        model.add(Conv2D(50, (5, 5), strides=(2, 2), padding='same'))
+        model.add(LeakyReLU())
+        model.add(Dropout(0.3))
 
-        model.add(layers.Flatten())
-        model.add(layers.Dense(1))
+        model.add(Flatten())
+        model.add(Dense(1))
 
         return model
 
@@ -256,4 +256,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=1000)
+    g.train(epochs=100000, nominal_batch_size=4860, sample_interval=1000)
