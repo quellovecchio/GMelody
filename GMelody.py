@@ -42,6 +42,7 @@ class GMelody():
         self.midi_ticks = 880
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
+        self.batch_size = 0
 
         optimizer = Adam(0.0002, 0.5)
         #optimizer = Adagrad()
@@ -195,6 +196,7 @@ class GMelody():
                 print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
         print("Dataset loaded")
         #l.log_matrix_in_input(data)
+        self.batch_size = batch_size
 
         data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
 
@@ -209,19 +211,22 @@ class GMelody():
             #  Train Discriminator
             # ---------------------
 
-            # Select a random batch of midis
-            idx = np.random.randint(0, data.shape[0], batch_size)
-            phrases = data[idx]
+            # introduced some learning skips to balance generator and discriminator
+            if epoch % 3 == 0:
 
-            noise = tf.random.normal([1, self.latent_dim])
+                # Select a random batch of midis
+                idx = np.random.randint(0, data.shape[0], batch_size)
+                phrases = data[idx]
 
-            # Generate a batch of new midis
-            gen_phrases = self.generator.predict(noise, steps=52)
+                noise = tf.random.normal([1, self.latent_dim])
 
-            # Train the discriminator
-            d_loss_real = self.discriminator.train_on_batch(phrases, valid)
-            d_loss_fake = self.discriminator.train_on_batch(gen_phrases, fake)
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
+                # Generate a batch of new midis
+                gen_phrases = self.generator.predict(noise, steps=self.batch_size)
+
+                # Train the discriminator
+                d_loss_real = self.discriminator.train_on_batch(phrases, valid)
+                d_loss_fake = self.discriminator.train_on_batch(gen_phrases, fake)
+                d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             # ---------------------
             #  Train Generator
@@ -244,9 +249,9 @@ class GMelody():
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
         noise = tf.random.normal([1, 100])
-        gen_midi = self.generator.predict(noise, steps=52)
+        gen_midi = self.generator.predict(noise, steps=self.batch_size)
         i = 0
-        for m in range(batch_size):
+        for m in range(int(batch_size/4)):
           name = "{}-{}".format(epoch, i)
           midicoordinator.matrixToMidi(gen_midi[i], name)
           #pattern = midi.read_midifile("/content/GMelody/generated/%d-%d.mid" % (epoch, i))
@@ -255,4 +260,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=500, sample_interval=100)
+    g.train(epochs=100000, nominal_batch_size=1000, sample_interval=100)
