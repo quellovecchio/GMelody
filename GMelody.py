@@ -121,8 +121,7 @@ class GMelody():
     def build_discriminator(self):
 
         model = Sequential()
-        model.add(Conv2D(64, (5, 5), strides=(2, 2), padding='same',
-                                     input_shape=[880, 80, 2]))
+        model.add(Conv2D(64, (5, 5), strides=(2, 2), padding='same', input_shape=[880, 80, 2]))
         model.add(LeakyReLU())
         model.add(Dropout(0.3))
 
@@ -214,10 +213,10 @@ class GMelody():
             idx = np.random.randint(0, data.shape[0], batch_size)
             phrases = data[idx]
 
-            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
+            noise = tf.random.normal([1, self.latent_dim])
 
             # Generate a batch of new midis
-            gen_phrases = self.generator.predict(noise)
+            gen_phrases = self.generator.predict(noise, steps=52)
 
             # Train the discriminator
             d_loss_real = self.discriminator.train_on_batch(phrases, valid)
@@ -244,8 +243,8 @@ class GMelody():
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
-        noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
-        gen_midi = self.generator.predict(noise)
+        noise = tf.random.normal([1, 100])
+        gen_midi = self.generator.predict(noise, steps=52)
         i = 0
         for m in range(batch_size):
           name = "{}-{}".format(epoch, i)
@@ -256,4 +255,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=4860, sample_interval=1000)
+    g.train(epochs=100000, nominal_batch_size=500, sample_interval=100)
