@@ -16,7 +16,7 @@
 from __future__ import print_function, division
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
-from keras.layers import BatchNormalization, Activation, ZeroPadding2D
+from keras.layers import BatchNormalization, Activation, ZeroPadding2D, LSTM, Bidirectional
 from keras.layers.advanced_activations import LeakyReLU, ThresholdedReLU
 from keras.layers.convolutional import UpSampling2D, Conv2D
 from keras.models import Sequential, Model
@@ -74,42 +74,42 @@ class GMelody():
     def build_generator(self):
 
         model = Sequential()
-
         model.add(Dense(256, input_dim=self.latent_dim))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
         model.add(Dense(512))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(1024))
-        model.add(LeakyReLU(alpha=0.2))
-        model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation=tf.keras.layers.LeakyReLU(alpha=0.1)))
+        #model.add(Dense(1024))
+        #model.add(LeakyReLU(alpha=0.2))
+        #model.add(BatchNormalization(momentum=0.8))
+        model.add(Dense(np.prod(self.midi_shape), activation='tanh'))
         model.add(Reshape(self.midi_shape))
         model.summary()
-
+        
         noise = Input(shape=(self.latent_dim,))
-        result = model(noise)
+        seq = model(noise)
 
-        return Model(noise, result)
+        return Model(noise, seq)
 
 
     def build_discriminator(self):
 
         model = Sequential()
-
-        model.add(Flatten(input_shape=self.midi_shape))
-        model.add(Dense(512))
-        model.add(LeakyReLU(alpha=0.2))
+        model.add(Reshape((881, 156), input_shape=self.midi_shape))
+        model.add(LSTM(512, return_sequences=True))
+        model.add(Bidirectional(LSTM(512)))
+        #model.add(Dense(512))
+        #model.add(LeakyReLU(alpha=0.2))
         model.add(Dense(256))
         model.add(LeakyReLU(alpha=0.2))
         model.add(Dense(1, activation='sigmoid'))
         model.summary()
 
-        result = Input(shape=self.midi_shape)
-        validity = model(result)
+        seq = Input(shape=self.midi_shape)
+        validity = model(seq)
 
-        return Model(result, validity)
+        return Model(seq, validity)
 
 
     def train(self, epochs, nominal_batch_size, sample_interval=50):
@@ -210,9 +210,9 @@ class GMelody():
         #gen_midi = gen_midi.round(1)
         #l.log_matrix_at_epoch(gen_midi, epoch)
         midicoordinator.matrixToMidi(gen_midi[1], epoch)
-        pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
-        l.log_midi_pattern(pattern, epoch)
+        #pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
+        #l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=500)
+    g.train(epochs=100000, nominal_batch_size=119, sample_interval=10)
