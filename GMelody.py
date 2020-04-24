@@ -38,8 +38,8 @@ class GMelody():
 
     def __init__(self):
 
-        self.midi_notes = 78
-        self.midi_ticks = 881
+        self.midi_notes = 80
+        self.midi_ticks = 880
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
@@ -84,7 +84,8 @@ class GMelody():
         model.add(Dense(1024))
         model.add(LeakyReLU(alpha=0.2))
         model.add(BatchNormalization(momentum=0.8))
-        model.add(Dense(np.prod(self.midi_shape), activation=tf.keras.layers.LeakyReLU(alpha=0.1)))
+        model.add(Dense(np.prod(self.midi_shape)))
+        model.add(LeakyReLU(alpha=0.1))
         model.add(Reshape(self.midi_shape))
         model.summary()
 
@@ -118,8 +119,7 @@ class GMelody():
         l.clean_log()
         l.start_log()
         # Load the dataset
-        # Check the interval
-        mc = MidiCoordinator(24,102)
+        mc = MidiCoordinator(22,102)
         
         batch_size = 0
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
@@ -207,7 +207,6 @@ class GMelody():
         r, c = 5, 5
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        #gen_midi = gen_midi.round(1)
         #l.log_matrix_at_epoch(gen_midi, epoch)
         midicoordinator.matrixToMidi(gen_midi[1], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
