@@ -31,6 +31,7 @@ from Logger import Logger
 import numpy as np
 import sys
 import midi
+import os
 
 
 
@@ -42,6 +43,8 @@ class GMelody():
         self.midi_ticks = 880
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
+        self.dataset_directory = '/content/GMelody/dataset'
+        self.dataset_length = len(os.listdir(self.dataset_directory))
 
         #optimizer = Adam(0.0002, 0.5)
         optimizer = Adagrad()
@@ -113,7 +116,7 @@ class GMelody():
         return Model(result, validity)
 
 
-    def train(self, epochs, nominal_batch_size, sample_interval=50):
+    def train(self, epochs, batch_size, sample_interval=50):
 
         l = Logger()
         l.clean_log()
@@ -121,49 +124,51 @@ class GMelody():
         # Load the dataset
         mc = MidiCoordinator(22,102)
         
-        batch_size = 0
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
         # You should not use this solution in your project
-        coolnessArray = np.zeros(nominal_batch_size)
-        data = np.zeros((nominal_batch_size, self.midi_ticks, self.midi_notes, 2))
+        coolnessArray = np.zeros(self.dataset_length)
+        data = np.zeros((self.dataset_length, self.midi_ticks, self.midi_notes, 2))
+        samples_number = 0
 
+        i = 0
         print("Preparing dataset...")
-        for i in range(0, nominal_batch_size):
+        for f in os.listdir(self.dataset_directory):
             try:
-                matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
+                matrix = np.asarray(mc.midiToMatrix("{}/{}".format(self.dataset_directory,f)))
                 #l.log_matrix_in_input(matrix, i)
                 data[i+1] = matrix
-                #print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
-                batch_size = batch_size + 1
                 coolnessArray[i] = 1
+                samples_number = samples_number + 1
+                i = i + 1 
             except:
                 print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
-        print("Number of passed midis: %d" % (batch_size))
+                i = i + 1
+        print("Number of passed midis: %d" % (samples_number))
         print("Data to take into definitive array:")
         print(coolnessArray)
 
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
         c = 0
+        i = 0
+        data = np.zeros((self.dataset_length, self.midi_ticks, self.midi_notes, 2))
         print("Loading dataset...")
-        for i in range(0, nominal_batch_size):
+        for f in os.listdir(self.dataset_directory):
             try:
                 if coolnessArray[i] == 1:
-                    matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
-                    #l.log_matrix_in_input(matrix, i)
-                    data[c] = matrix
-                    print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
-                    c = c+1
+                  matrix = np.asarray(mc.midiToMatrix("{}/{}".format(self.dataset_directory,f)))
+                  #l.log_matrix_in_input(matrix, i)
+                  data[c] = matrix
+                  c = c + 1
+                  i = i + 1
+                print("Loaded midi n. %s, with shape %s" % (f,matrix.shape))
             except:
-                print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
+                print("Unexpected error %s, midi n. %s is discarded" % (sys.exc_info()[0], f))
+                i = i + 1
         print("Dataset loaded")
         #l.log_matrix_in_input(data)
 
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
-
-
         # Adversarial ground truths
-        valid = np.ones((batch_size, 1))
-        fake = np.zeros((batch_size, 1))
+        valid = np.ones((samples_number, 1))
+        fake = np.zeros((samples_number, 1))
 
         for epoch in range(epochs):
 
@@ -204,14 +209,14 @@ class GMelody():
             # need to start working on the music generation
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
-        r, c = 5, 5
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
         #l.log_matrix_at_epoch(gen_midi, epoch)
-        midicoordinator.matrixToMidi(gen_midi[1], epoch)
-        pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
-        l.log_midi_pattern(pattern, epoch)
+        for i in range(0, batch_size):
+          midicoordinator.matrixToMidi(gen_midi[i], epoch)
+          pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
+          l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=500)
+    g.train(epochs=100000, batch_size=32, sample_interval=500)
