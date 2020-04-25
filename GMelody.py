@@ -43,7 +43,7 @@ class GMelody():
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
-        optimizer = Adam(0.0002, 0.5)
+        optimizer = Adam(0.000001, 0.5)
         #optimizer = Adagrad()
 
          # Build and compile the discriminator
@@ -114,7 +114,7 @@ class GMelody():
 
 
     def train(self, epochs, batch_size, sample_interval=50):
-        files_number = 2000
+        files_number = 1000
 
         l = Logger()
         l.clean_log()
@@ -209,12 +209,13 @@ class GMelody():
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
-        noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+        noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+        noise = 0,5 * noise + 0.5
         gen_midi = self.generator.predict(noise)
-        l.log_matrix_at_epoch(gen_midi, epoch)
+        l.log_matrix_at_epoch(gen_midi[0], epoch)
         midicoordinator.matrixToMidi(gen_midi[0], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
-        l.log_midi_pattern(pattern, epoch)
+        #l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
