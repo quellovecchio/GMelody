@@ -43,7 +43,7 @@ class GMelody():
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
-        optimizer = Adam(0.0000001, 0.5)
+        optimizer = Adam(0.0002, 0.5)
         #optimizer = Adagrad()
 
          # Build and compile the discriminator
@@ -113,7 +113,8 @@ class GMelody():
         return Model(result, validity)
 
 
-    def train(self, epochs, nominal_batch_size, sample_interval=50):
+    def train(self, epochs, batch_size, sample_interval=50):
+        files_number = 2000
 
         l = Logger()
         l.clean_log()
@@ -125,11 +126,11 @@ class GMelody():
         batch_size = 0
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
         # You should not use this solution in your project
-        coolnessArray = np.zeros(nominal_batch_size)
-        data = np.zeros((nominal_batch_size, self.midi_ticks, self.midi_notes, 2))
-
+        coolnessArray = np.zeros(files_number)
+        data = np.zeros((files_number, self.midi_ticks, self.midi_notes, 2))
+        
         print("Preparing dataset...")
-        for i in range(0, nominal_batch_size):
+        for i in range(0, files_number):
             try:
                 matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
                 #l.log_matrix_in_input(matrix, i)
@@ -143,10 +144,13 @@ class GMelody():
         print("Data to take into definitive array:")
         print(coolnessArray)
 
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
+        definitive_elements_number = (np.count_nonzero(coolnessArray))
+        print(definitive_elements_number)
+
+        data = np.zeros((definitive_elements_number, self.midi_ticks, self.midi_notes, 2))
         c = 0
         print("Loading dataset...")
-        for i in range(0, nominal_batch_size):
+        for i in range(0, files_number):
             try:
                 if coolnessArray[i] == 1:
                     matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
@@ -175,7 +179,7 @@ class GMelody():
             idx = np.random.randint(0, data.shape[0], batch_size)
             phrases = data[idx]
 
-            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
+            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
 
             # Generate a batch of new midis
             gen_phrases = self.generator.predict(noise)
@@ -189,7 +193,7 @@ class GMelody():
             #  Train Generator
             # ---------------------
 
-            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
+            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
 
             # Train the generator (to have the discriminator label samples as valid)
             g_loss = self.combined.train_on_batch(noise, valid)
@@ -205,14 +209,13 @@ class GMelody():
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
         r, c = 5, 5
-        noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
+        noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        #gen_midi = gen_midi.round(1)
-        #l.log_matrix_at_epoch(gen_midi, epoch)
-        midicoordinator.matrixToMidi(gen_midi[1], epoch)
+        l.log_matrix_at_epoch(gen_midi, epoch)
+        midicoordinator.matrixToMidi(gen_midi[0], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
         l.log_midi_pattern(pattern, epoch)
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=4867, sample_interval=500)
+    g.train(epochs=100000, batch_size=32, sample_interval=100)
