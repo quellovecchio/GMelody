@@ -179,7 +179,7 @@ class GMelody():
             idx = np.random.randint(0, data.shape[0], batch_size)
             phrases = data[idx]
 
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
 
             # Generate a batch of new midis
             gen_phrases = self.generator.predict(noise)
@@ -193,7 +193,7 @@ class GMelody():
             #  Train Generator
             # ---------------------
 
-            noise = np.random.normal(0, 1, (batch_size, self.latent_dim))
+            noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
 
             # Train the generator (to have the discriminator label samples as valid)
             g_loss = self.combined.train_on_batch(noise, valid)
@@ -205,13 +205,11 @@ class GMelody():
             if epoch % sample_interval == 0:
                 self.sample_midi(epoch, mc, l, batch_size)
 
-            # need to start working on the music generation
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
-        r, c = 5, 5
-        noise = np.random.normal(0, 1, (r * c, self.latent_dim))
+        noise = np.random.randint(0, 2, (1, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        gen_midi = 0.5 * gen_midi + 0.5
+        gen_midi = (gen_midi + 10) * 5
         l.log_matrix_at_epoch(gen_midi[0], epoch)
         midicoordinator.matrixToMidi(gen_midi[0], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
