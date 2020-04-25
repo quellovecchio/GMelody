@@ -211,7 +211,7 @@ class GMelody():
         r, c = 5, 5
         noise = np.random.normal(0, 1, (r * c, self.latent_dim))
         gen_midi = self.generator.predict(noise)
-        gen_midi = 0.5 * gen_imgs + 0.5
+        gen_midi = 0.5 * gen_midi + 0.5
         l.log_matrix_at_epoch(gen_midi[0], epoch)
         midicoordinator.matrixToMidi(gen_midi[0], epoch)
         pattern = midi.read_midifile("/content/GMelody/generated/%d.mid" % (epoch))
