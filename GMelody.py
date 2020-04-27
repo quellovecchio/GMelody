@@ -158,7 +158,7 @@ class GMelody():
         print("Dataset loaded")
         #l.log_matrix_in_input(data)
 
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
+        #data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
 
 
         # Adversarial ground truths
