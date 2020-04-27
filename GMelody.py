@@ -39,8 +39,8 @@ class GMelody():
 
     def __init__(self):
 
-        self.midi_notes = 78
-        self.midi_ticks = 881
+        self.midi_notes = 80
+        self.midi_ticks = 880
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
@@ -120,7 +120,7 @@ class GMelody():
         l.start_log()
         # Load the dataset
         # Check the interval
-        mc = MidiCoordinator(24,102)
+        mc = MidiCoordinator(22,102)
 
         path = '/content/GMelody/dataset'
         num_files = len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
@@ -140,8 +140,8 @@ class GMelody():
                 #print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
                 final_matrix_lenght = final_matrix_lenght + 1
                 coolnessArray[i] = 1
-            except:
-                print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
+            except Exception as e:
+                print("Unexpected error %s, midi n. %d is discarded" % (e, i))
         print("Number of passed midis: %d" % (final_matrix_lenght))
         print("Data to take into definitive array:")
         print(coolnessArray)
