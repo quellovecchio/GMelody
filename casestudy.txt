@@ -1,9 +1,0 @@
-midi.NoteOnEvent(tick=0, channel=0, data=[48, 40])
-		  ^			   ^   ^
-		  |			   |   |
-		E' legato 		pitch  velocity
-		al momento		       (sempre zero a noteoff)
-		in cui è
-		eseguita la 
-		nota ma non so
-		come

@@ -32,6 +32,7 @@ import numpy as np
 import sys
 import midi
 
+import os.path
 
 
 class GMelody():
@@ -112,7 +113,7 @@ class GMelody():
         return Model(result, validity)
 
 
-    def train(self, epochs, nominal_batch_size, sample_interval=50):
+    def train(self, epochs, batch_size, sample_interval=50):
 
         l = Logger()
         l.clean_log()
@@ -120,32 +121,35 @@ class GMelody():
         # Load the dataset
         # Check the interval
         mc = MidiCoordinator(24,102)
+
+        path = '/content/GMelody/dataset'
+        num_files = len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
         
-        batch_size = 0
+        final_matrix_lenght = 0
         # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
         # You should not use this solution in your project
-        coolnessArray = np.zeros(nominal_batch_size)
-        data = np.zeros((nominal_batch_size, self.midi_ticks, self.midi_notes, 2))
+        coolnessArray = np.zeros(num_files)
+        data = np.zeros((num_files, self.midi_ticks, self.midi_notes, 2))
 
         print("Preparing dataset...")
-        for i in range(0, nominal_batch_size):
+        for i in range(0, num_files):
             try:
                 matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
                 #l.log_matrix_in_input(matrix, i)
                 data[i+1] = matrix
                 #print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
-                batch_size = batch_size + 1
+                final_matrix_lenght = final_matrix_lenght + 1
                 coolnessArray[i] = 1
             except:
                 print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
-        print("Number of passed midis: %d" % (batch_size))
+        print("Number of passed midis: %d" % (final_matrix_lenght))
         print("Data to take into definitive array:")
         print(coolnessArray)
 
-        data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
+        data = np.zeros((final_matrix_lenght, self.midi_ticks, self.midi_notes, 2))
         c = 0
         print("Loading dataset...")
-        for i in range(0, nominal_batch_size):
+        for i in range(0, num_files):
             try:
                 if coolnessArray[i] == 1:
                     matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
@@ -217,4 +221,4 @@ class GMelody():
 
 if __name__ == '__main__':
     g = GMelody()
-    g.train(epochs=100000, nominal_batch_size=119, sample_interval=500)
+    g.train(epochs=100000, batch_size=32, sample_interval=500)
