@@ -45,12 +45,13 @@ class GMelody():
         self.latent_dim = 100
 
         #optimizer = Adam(0.0002, 0.5)
-        optimizer = Adagrad()
+        optimizer_discriminator = Adagrad(0.00003)
+        optimizer_combined = Adagrad()
 
          # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
-            optimizer=optimizer,
+            optimizer=optimizer_discriminator,
             metrics=['accuracy'])
 
         # Build the generator
@@ -69,7 +70,7 @@ class GMelody():
         # The combined model  (stacked generator and discriminator)
         # Trains the generator to fool the discriminator
         self.combined = Model(z, validity)
-        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer_combined)
 
 
     def build_generator(self):
