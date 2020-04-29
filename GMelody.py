@@ -9,7 +9,8 @@
 #
 #       GMelody:
 #       This is the main script, it coordinates the modules and
-#       outputs the results
+#       outputs the results. The logging functions are commented,
+#       if needed just uncomment them
 #
 #   -----------------------------------------------------------------
 
@@ -44,11 +45,11 @@ class GMelody():
         self.midi_shape = (self.midi_ticks, self.midi_notes, 2)
         self.latent_dim = 100
 
-        #optimizer = Adam(0.0002, 0.5)
+        # For this application Adagrad works great with two distinct learning rates for the discriminator and the combined model
         optimizer_discriminator = Adagrad(0.00003)
         optimizer_combined = Adagrad()
 
-         # Build and compile the discriminator
+        # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss='binary_crossentropy',
             optimizer=optimizer_discriminator,
@@ -64,7 +65,7 @@ class GMelody():
         # For the combined model we will only train the generator
         self.discriminator.trainable = False
 
-        # The discriminator takes generated images as input and determines validity
+        # The discriminator takes generated midis as input and determines validity
         validity = self.discriminator(result)
 
         # The combined model  (stacked generator and discriminator)
@@ -116,43 +117,51 @@ class GMelody():
 
     def train(self, epochs, batch_size, sample_interval=50):
 
+        # Starting the logging session
         l = Logger()
         l.clean_log()
         l.start_log()
-        # Load the dataset
-        # Check the interval
+        
+        # Instancing the midicoordinator class
         mc = MidiCoordinator(22,102)
 
+        # Loading the dataset
+        # It has a little bit of complexity because it performes a validity check for each midi
+        # Went with this option because i generated shorter midis from longer ones
+
+        # Path of the dataset
         path = '/content/GMelody/dataset'
-        num_files = len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
-        
+        # Checking how many files are in the dataset folder
+        files_number = len([f for f in os.listdir(path)if os.path.isfile(os.path.join(path, f))])
+        # Counter for the midis that pass the validity check and array for tracking them
         final_matrix_lenght = 0
-        # This is an array which is helpful to build the definitive dataset and helps me managing a defective dataset
-        # You should not use this solution in your project
-        coolnessArray = np.zeros(num_files)
-        data = np.zeros((num_files, self.midi_ticks, self.midi_notes, 2))
+        files_passed = np.zeros(files_number)
+        # Temporary matrix used for checking the validity
+        data = np.zeros((files_number, self.midi_ticks, self.midi_notes, 2))
 
         print("Preparing dataset...")
-        for i in range(0, num_files):
+        for i in range(0, files_number):
             try:
+                # Try to fit the midi into the matrix. If succeded, store the information in the validity array and increment the variable
                 matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
-                #l.log_matrix_in_input(matrix, i)
                 data[i+1] = matrix
-                #print("Loaded midi n. %d, with shape %s" % (i,matrix.shape))
                 final_matrix_lenght = final_matrix_lenght + 1
-                coolnessArray[i] = 1
+                files_passed[i] = 1
             except Exception as e:
+                # If not succeded, tell us why
                 print("Unexpected error %s, midi n. %d is discarded" % (e, i))
+        # First step recap
         print("Number of passed midis: %d" % (final_matrix_lenght))
         print("Data to take into definitive array:")
-        print(coolnessArray)
+        print(files_passed)
 
+        # Loading the definitive data array
         data = np.zeros((final_matrix_lenght, self.midi_ticks, self.midi_notes, 2))
         c = 0
         print("Loading dataset...")
-        for i in range(0, num_files):
+        for i in range(0, files_number):
             try:
-                if coolnessArray[i] == 1:
+                if files_passed[i] == 1:
                     matrix = np.asarray(mc.midiToMatrix("/content/GMelody/dataset/%d.mid" % (i)))
                     #l.log_matrix_in_input(matrix, i)
                     data[c] = matrix
@@ -162,9 +171,6 @@ class GMelody():
                 print("Unexpected error %s, midi n. %d is discarded" % (sys.exc_info()[0], i))
         print("Dataset loaded")
         #l.log_matrix_in_input(data)
-
-        #data = np.zeros((batch_size, self.midi_ticks, self.midi_notes, 2))
-
 
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
@@ -209,7 +215,7 @@ class GMelody():
             # need to start working on the music generation
     
     def sample_midi(self, epoch,  midicoordinator, l, batch_size):
-        r, c = 5, 5
+        # Sample a number of midis equal to the batch_size and save them into the ./generated/ folder
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
         i = 0

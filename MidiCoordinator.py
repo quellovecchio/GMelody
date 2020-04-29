@@ -6,7 +6,7 @@
 #
 #       -------------------------------------------------------
 #
-#       MidiCoordinator class:
+#       MidiCoordinator:
 #       class whose responsibility is to encode midi files into
 #       readable tables.
 #       Those tables are built in this way: each row represents
