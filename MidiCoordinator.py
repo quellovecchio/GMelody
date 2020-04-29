@@ -73,55 +73,57 @@ class MidiCoordinator(object):
             self._upperBound = upperBound
             self._span = upperBound-lowerBound
 
+    # Function that gets a midi file (as filepath) in input and gives the respective matrix in output
     def midiToMatrix(self, midifile):
         schema = midi.read_midifile(midifile)
         # evaluating the number of tracks
-        tracksNumber = len(schema)
+        tracks_number = len(schema)
         # if the midi has more than one track warns that the other will be discarded
-        if tracksNumber > 1:
+        if tracks_number > 1:
             print("The midi track has more than one track. The others will be discarded.")
 
         # this cylces for each track
-        for i in range(tracksNumber):
+        for i in range(tracks_number):
             # flag to discard the track if empty
-            hasEvents = False
+            has_events = False
             # gather the number of events
-            eventsNumber = len(schema[i])
+            events_number = len(schema[i])
             # calculates the length of the track in ticks
-            ticksNumber = 0
-            for f in range(eventsNumber):
-                ticksNumber = ticksNumber + schema[i][f].tick
+            ticks_number = 0
+            for f in range(events_number):
+                ticks_number = ticks_number + schema[i][f].tick
             # creates the matrix of the track
-            trackMatrix = np.zeros((ticksNumber, self._span, 2))
+            track_matrix = np.zeros((ticks_number, self._span, 2))
             # getting an incremental tick counter
-            tickCounter = 0
+            tick_counter = 0
             # iterate the events of the track and update the status
-            for j in range(eventsNumber):
+            for j in range(events_number):
                 # takes the event from the schema
                 event = schema[i][j]
-                tickCounter = tickCounter + event.tick
+                tick_counter = tick_counter + event.tick
                 if isinstance(event, midi.NoteEvent):
                     if (event.pitch < self._lowerBound) or (event.pitch >= self._upperBound):
                         pass
                     else:
                         if isinstance(event, midi.NoteOffEvent) or event.velocity == 0:
-                            trackMatrix[tickCounter][event.pitch-self._lowerBound] = [1,0]
+                            track_matrix[tick_counter][event.pitch-self._lowerBound] = [1,0]
                         else:
-                            hasEvents = True
-                            trackMatrix[tickCounter][event.pitch-self._lowerBound] = [1,event.velocity]
+                            has_events = True
+                            track_matrix[tick_counter][event.pitch-self._lowerBound] = [1,event.velocity]
                 else:
                     pass
-            if hasEvents == True:
-                return trackMatrix
+            if has_events == True:
+                return track_matrix
             else:
                 raise ValueError('The track has no events')
 
+
+    # Function that, given a input matrix, transforms it into a midi file. It is less documented that the previous one but it is easier to understand. Includes commented debug code
     def matrixToMidi(self, matrix, name = "example"):
-        #print(matrix[0])
         pattern = midi.Pattern()
         track = midi.Track()
         pattern.append(track)
-        tickCounter = 0
+        tick_counter = 0
         for i in range(len(matrix)):
             for j in range(len(matrix[i])):
                 if (matrix[i][j] == 0).any():
@@ -129,25 +131,21 @@ class MidiCoordinator(object):
                         #print("Couple found: ")
                         #print(matrix[i][j])
                         #print("Response: a zero")
-                        event = midi.NoteOffEvent(tick = tickCounter, pitch = j + self._lowerBound)
+                        event = midi.NoteOffEvent(tick = tick_counter, pitch = j + self._lowerBound)
                         track.append(event)
-                        tickCounter = 0
-                    #else: 
-                        #print("Couple found: ")
-                        #print(matrix[i][j])
-                        #print("Response: [0, 0]")   
+                        tick_counter = 0  
                 else:
                     #print("Couple found: ")
                     #print(matrix[i][j])
-                    #print("Response: [1, 1]")
+                    #print("Response: [x, y]")
                     #print(matrix[i][j][1])
                     velocity = int(matrix[i][j][1])
-                    event = midi.NoteOnEvent(tick = tickCounter, velocity = 40, pitch = j + self._lowerBound)
+                    event = midi.NoteOnEvent(tick = tick_counter, velocity = 40, pitch = j + self._lowerBound)
                     track.append(event)
-                    tickCounter = 0
-            tickCounter = tickCounter+1
-        endOfTrack = midi.EndOfTrackEvent(tick=1)
-        track.append(endOfTrack)
+                    tick_counter = 0
+            tick_counter = tick_counter+1
+        end_of_track = midi.EndOfTrackEvent(tick=1)
+        track.append(end_of_track)
         midi.write_midifile("/content/GMelody/generated/{}.mid".format(name), pattern)
 
 
