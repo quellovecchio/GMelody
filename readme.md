@@ -6,6 +6,12 @@ GMelody is a GAN written in Python and built with Keras and Tensorflow that gene
 
 Clone the project and follow the instructions to get the project up and running.
 
+Be sure to clone the "dense2" branch which is the most up-to-date
+
+```
+$ git clone -b dense2 https://github.com/quellovecchio/GMelody.git
+```
+
 ### Prerequisites
 
 To run the script you will need the following software:
