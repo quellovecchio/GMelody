@@ -16,6 +16,8 @@
 
 from __future__ import print_function, division
 
+import tensorflow as tf
+
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.layers import BatchNormalization, Activation, ZeroPadding2D
 from keras.layers.advanced_activations import LeakyReLU
@@ -24,15 +26,13 @@ from keras.models import Sequential, Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers import Adagrad
 
-import matplotlib.pyplot as plt
-import tensorflow as tf
-
 from MidiCoordinator import MidiCoordinator
 from Logger import Logger
+
+import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import midi
-
 import os.path
 
 
@@ -46,7 +46,7 @@ class GMelody():
         self.latent_dim = 100
 
         # For this application Adagrad works great with two distinct learning rates for the discriminator and the combined model
-        optimizer_discriminator = Adagrad(0.00003)
+        optimizer_discriminator = Adagrad(0.00002)
         optimizer_combined = Adagrad()
 
         # Build and compile the discriminator
@@ -172,6 +172,11 @@ class GMelody():
         print("Dataset loaded")
         #l.log_matrix_in_input(data)
 
+        # Arrays to store losses and accuracy
+        g_losses = []
+        d_losses = []
+        accuracy_array = []
+
         # Adversarial ground truths
         valid = np.ones((batch_size, 1))
         fake = np.zeros((batch_size, 1))
@@ -196,6 +201,9 @@ class GMelody():
             d_loss_fake = self.discriminator.train_on_batch(gen_phrases, fake)
             d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
+            d_losses.append(d_loss[0])
+            accuracy_array.append(100*d_loss[1])
+
             # ---------------------
             #  Train Generator
             # ---------------------
@@ -204,17 +212,39 @@ class GMelody():
 
             # Train the generator (to have the discriminator label samples as valid)
             g_loss = self.combined.train_on_batch(noise, valid)
+            
+            g_losses.append(g_loss)
 
             # Plot the progress
             print ("%d [D loss: %f, acc.: %.2f%%] [G loss: %f]" % (epoch, d_loss[0], 100*d_loss[1], g_loss))
             
             # If at save interval => save generated samples
             if epoch % sample_interval == 0:
-                self.sample_midi(epoch, mc, l, batch_size)
+                self.sample_midi(epoch, mc, l, batch_size, g_losses, d_losses, accuracy_array)
 
             # need to start working on the music generation
     
-    def sample_midi(self, epoch,  midicoordinator, l, batch_size):
+    def sample_midi(self, epoch,  midicoordinator, l, batch_size, g_losses, d_losses, accuracy_array):
+        # Plot loss and accuracy
+        plt.plot(g_losses)
+        plt.plot(d_losses)
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['generator', 'discriminator'], loc='upper left')
+        axes = plt.gca()
+        axes.set_ylim([0,2])
+        plt.savefig("lossplot.png")
+        
+        plt.clf()
+
+        plt.plot(accuracy_array)
+        plt.title('discriminator accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['val'], loc='upper left')
+        plt.savefig("accplot.png")
+
         # Sample a number of midis equal to the batch_size and save them into the ./generated/ folder
         noise = np.random.randint(0, 2, (batch_size, self.latent_dim))
         gen_midi = self.generator.predict(noise)
